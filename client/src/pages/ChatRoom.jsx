@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import io from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
-import { Send, MessageSquare, User, AlertCircle } from 'lucide-react';
+import { Send, MessageSquare, User, AlertCircle, Paperclip, File, Download, X } from 'lucide-react';
 
 const ChatRoom = () => {
   const { user } = useAuth();
@@ -14,9 +14,11 @@ const ChatRoom = () => {
   const [activeContact, setActiveContact] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
   const [socket, setSocket] = useState(null);
 
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // 1. Establish Socket Connection
   useEffect(() => {
@@ -115,19 +117,44 @@ const ChatRoom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // File loading helper
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Max 10MB limit check
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size exceeds the 10MB limit.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedFile({
+        data: reader.result,
+        name: file.name,
+        type: file.type,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   // 4. Send Message Handler
   const handleSendMessage = (e) => {
     e.preventDefault();
-    if (!inputMessage.trim() || !activeContact || !socket) return;
+    if (!activeContact || !socket) return;
+    if (!inputMessage.trim() && !selectedFile) return;
 
     // Send through Socket to get instant sync and DB save
     socket.emit('send_message', {
       sender: user._id,
       receiver: activeContact._id,
       content: inputMessage,
+      file: selectedFile,
     });
 
     setInputMessage('');
+    setSelectedFile(null);
   };
 
   if (!user) {
@@ -206,12 +233,35 @@ const ChatRoom = () => {
                 ) : (
                   messages.map((msg) => {
                     const isMine = msg.sender === user._id;
+                    const isImage = msg.fileUrl && msg.fileType?.startsWith('image/');
                     return (
                       <div
                         key={msg._id}
                         className={`message-bubble ${isMine ? 'message-sent' : 'message-received'}`}
+                        style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
                       >
-                        {msg.content}
+                        {isImage && (
+                          <img 
+                            src={msg.fileUrl} 
+                            alt={msg.fileName} 
+                            style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', display: 'block', cursor: 'pointer' }}
+                            onClick={() => window.open(msg.fileUrl, '_blank')}
+                          />
+                        )}
+                        {msg.fileUrl && !isImage && (
+                          <a 
+                            href={msg.fileUrl} 
+                            download={msg.fileName} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isMine ? '#fff' : 'var(--primary)', textDecoration: 'underline', fontSize: '0.9rem' }}
+                          >
+                            <File size={16} />
+                            <span style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{msg.fileName}</span>
+                            <Download size={14} style={{ flexShrink: 0 }} />
+                          </a>
+                        )}
+                        {msg.content && <div>{msg.content}</div>}
                       </div>
                     );
                   })
@@ -219,16 +269,51 @@ const ChatRoom = () => {
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* Selected File Preview */}
+              {selectedFile && (
+                <div style={{
+                  padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.03)',
+                  borderTop: '1px solid var(--border-dark)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'space-between', gap: '1rem'
+                }}>
+                  <span style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <File size={16} color="var(--primary)" />
+                    <span style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedFile.name}</span>
+                    <span style={{ color: 'var(--text-secondary-dark)', fontSize: '0.75rem' }}>
+                      ({(selectedFile.data.length * 0.75 / 1024).toFixed(1)} KB)
+                    </span>
+                  </span>
+                  <button type="button" onClick={() => setSelectedFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <X size={16} color="var(--danger)" />
+                  </button>
+                </div>
+              )}
+
               {/* Input section */}
-              <form onSubmit={handleSendMessage} className="chat-input-area">
+              <form onSubmit={handleSendMessage} className="chat-input-area" style={{ alignItems: 'center' }}>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => fileInputRef.current.click()}
+                  style={{ padding: '0.75rem', borderRadius: '50%', flexShrink: 0 }}
+                  title="Attach file or image"
+                >
+                  <Paperclip size={18} />
+                </button>
                 <input
                   type="text"
-                  placeholder="Type a message..."
+                  placeholder={selectedFile ? "Add a message or press Send..." : "Type a message..."}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  required
+                  required={!selectedFile}
                 />
-                <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem' }}>
+                <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem', borderRadius: '50%', flexShrink: 0 }}>
                   <Send size={18} />
                 </button>
               </form>

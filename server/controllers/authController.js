@@ -128,3 +128,68 @@ export const getUserProfile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Generate OTP and request password reset
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'No user registered with this email address' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Set OTP and expiration (10 minutes)
+    user.resetPasswordOTP = otp;
+    user.resetPasswordOTPExpires = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    // MOCK OTP LOGGING: Since there's no SMTP configured, we log the OTP to the server console and also return it in response for convenience in testing!
+    console.log(`==========================================`);
+    console.log(`PASSWORD RESET OTP FOR ${email}: ${otp}`);
+    console.log(`==========================================`);
+
+    res.json({ 
+      message: 'Password reset OTP has been sent successfully.', 
+      otpForTesting: otp // Providing for quick validation
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Verify OTP and reset password
+// @route   POST /api/auth/reset-password
+// @access  Public
+export const resetPassword = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ 
+      email,
+      resetPasswordOTP: otp,
+      resetPasswordOTPExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired OTP. Please request a new one.' });
+    }
+
+    // Update password
+    user.password = newPassword;
+    // Clear OTP details
+    user.resetPasswordOTP = undefined;
+    user.resetPasswordOTPExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Password has been reset successfully. Please log in with your new password.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

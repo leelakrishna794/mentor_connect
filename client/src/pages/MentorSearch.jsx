@@ -85,15 +85,13 @@ const MentorSearch = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <span className="input-label" style={{ fontSize: '0.8rem' }}>Skill</span>
-              <select value={skill} onChange={(e) => setSkill(e.target.value)}>
-                <option value="">All Skills</option>
-                <option value="javascript">JavaScript</option>
-                <option value="react">React</option>
-                <option value="node">Node.js</option>
-                <option value="python">Python</option>
-                <option value="database">SQL/MongoDB</option>
-                <option value="architecture">System Design</option>
-              </select>
+              <input
+                type="text"
+                placeholder="e.g. React, Python"
+                value={skill}
+                onChange={(e) => setSkill(e.target.value)}
+                style={{ padding: '0.6rem 0.75rem', fontSize: '0.9rem', borderRadius: '8px' }}
+              />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

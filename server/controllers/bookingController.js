@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Booking from '../models/Booking.js';
 import MentorProfile from '../models/MentorProfile.js';
 import Review from '../models/Review.js';
@@ -49,13 +50,18 @@ export const createBooking = async (req, res) => {
       return res.status(400).json({ message: 'This slot is already booked' });
     }
 
+    const bookingId = new mongoose.Types.ObjectId();
+    const meetingLink = `https://meet.jit.si/MentorConnect-${bookingId}`;
+
     const booking = await Booking.create({
+      _id: bookingId,
       mentor: mentorId,
       mentee: targetMenteeId,
       date,
       time,
       notes: notes || (req.user.role === 'admin' ? 'Assigned by Administrator' : ''),
       status: req.user.role === 'admin' ? 'accepted' : 'pending',
+      meetingLink,
     });
 
     if (req.user.role === 'admin') {

@@ -339,8 +339,16 @@ const Dashboard = () => {
                         Date: {booking.date} at {booking.time}
                       </p>
                       {booking.notes && (
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary-dark)' }}>
+                        <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', color: 'var(--text-secondary-dark)' }}>
                           Notes: {booking.notes}
+                        </p>
+                      )}
+                      {booking.status === 'accepted' && booking.meetingLink && (
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--primary)' }}>
+                          <strong>Meeting Link: </strong>
+                          <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontWeight: 'bold' }}>
+                            Join Call Room (Jitsi Meet)
+                          </a>
                         </p>
                       )}
                     </div>
@@ -458,7 +466,15 @@ const Dashboard = () => {
                       <div>
                         <h4 style={{ margin: '0 0 0.5rem 0' }}>Mentee: {booking.mentee?.name}</h4>
                         <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>Slot: {booking.date} at {booking.time}</p>
-                        {booking.notes && <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary-dark)' }}>Notes: {booking.notes}</p>}
+                        {booking.notes && <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', color: 'var(--text-secondary-dark)' }}>Notes: {booking.notes}</p>}
+                        {booking.status === 'accepted' && booking.meetingLink && (
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--primary)' }}>
+                            <strong>Meeting Link: </strong>
+                            <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline', fontWeight: 'bold' }}>
+                              Join Call Room (Jitsi Meet)
+                            </a>
+                          </p>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                         <span className={`badge badge-${booking.status}`}>{booking.status}</span>
@@ -845,7 +861,7 @@ const Dashboard = () => {
                       <th style={{ padding: '0.75rem' }}>Date & Time</th>
                       <th style={{ padding: '0.75rem' }}>Mentor</th>
                       <th style={{ padding: '0.75rem' }}>Mentee</th>
-                      <th style={{ padding: '0.75rem' }}>Notes</th>
+                      <th style={{ padding: '0.75rem' }}>Notes & Meeting Link</th>
                       <th style={{ padding: '0.75rem' }}>Status</th>
                     </tr>
                   </thead>
@@ -855,7 +871,16 @@ const Dashboard = () => {
                         <td style={{ padding: '0.75rem' }}>{b.date} at {b.time}</td>
                         <td style={{ padding: '0.75rem' }}>{b.mentor?.name || '—'}</td>
                         <td style={{ padding: '0.75rem' }}>{b.mentee?.name || '—'}</td>
-                        <td style={{ padding: '0.75rem', fontSize: '0.85rem' }}>{b.notes || '—'}</td>
+                        <td style={{ padding: '0.75rem', fontSize: '0.85rem' }}>
+                          <div>{b.notes || '—'}</div>
+                          {b.status === 'accepted' && b.meetingLink && (
+                            <div style={{ marginTop: '0.25rem' }}>
+                              <a href={b.meetingLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'underline' }}>
+                                Join Call Room
+                              </a>
+                            </div>
+                          )}
+                        </td>
                         <td style={{ padding: '0.75rem' }}>
                           <span className={`badge badge-${b.status}`}>{b.status}</span>
                         </td>

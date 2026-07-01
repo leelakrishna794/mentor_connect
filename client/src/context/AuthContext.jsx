@@ -52,6 +52,11 @@ export const AuthProvider = ({ children }) => {
       password,
       role,
     });
+    
+    if (data.pendingApproval) {
+      return data;
+    }
+
     localStorage.setItem('token', data.token);
     setToken(data.token);
     setUser({ _id: data._id, name: data.name, email: data.email, role: data.role });

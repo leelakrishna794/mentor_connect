@@ -12,6 +12,7 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('mentee');
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -20,14 +21,37 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await register(name, email, password, role);
-      navigate('/dashboard');
+      const res = await register(name, email, password, role);
+      if (res.pendingApproval) {
+        setSuccessMsg(res.message);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (successMsg) {
+    return (
+      <div style={{ maxWidth: '500px', margin: '4rem auto', width: '100%' }}>
+        <div className="card" style={{ padding: '2.5rem', textAlign: 'center' }}>
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+            <UserCheck size={32} />
+          </div>
+          <h2 style={{ marginBottom: '1rem' }}>Success!</h2>
+          <p style={{ color: 'var(--text-secondary-dark)', lineHeight: '1.6', marginBottom: '2rem' }}>
+            {successMsg}
+          </p>
+          <Link to="/login" className="btn btn-primary" style={{ width: '100%' }}>
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: '500px', margin: '3rem auto', width: '100%' }}>

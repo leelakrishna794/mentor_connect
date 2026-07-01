@@ -54,13 +54,20 @@ export const registerUser = async (req, res) => {
         });
       }
 
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user._id),
-      });
+      if (user.role === 'admin') {
+        res.status(201).json({
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          token: generateToken(user._id),
+        });
+      } else {
+        res.status(201).json({
+          message: 'Registration successful! Your account is pending administrator approval. You will be able to log in once approved.',
+          pendingApproval: true
+        });
+      }
     } else {
       res.status(400).json({ message: 'Invalid user data' });
     }

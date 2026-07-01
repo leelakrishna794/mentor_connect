@@ -15,7 +15,9 @@ const MentorProfileView = () => {
   const [success, setSuccess] = useState('');
 
   // Booking fields
-  const [selectedDaySlot, setSelectedDaySlot] = useState(null); // { day, slot }
+  const [bookingDate, setBookingDate] = useState('');
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState('');
   const [notes, setNotes] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
 
@@ -35,6 +37,26 @@ const MentorProfileView = () => {
     fetchProfileDetails();
   }, [id]);
 
+  const handleDateChange = (e) => {
+    const chosenDate = e.target.value;
+    setBookingDate(chosenDate);
+    setSelectedSlot('');
+    
+    if (!chosenDate || !mentorData?.profile) {
+      setAvailableSlots([]);
+      return;
+    }
+    
+    // Find the day name for the selected date
+    const dateObj = new Date(chosenDate);
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = daysOfWeek[dateObj.getDay()];
+    
+    // Find matching availability from mentor profile
+    const dayAvailability = mentorData.profile.availability?.find(a => a.day === dayName);
+    setAvailableSlots(dayAvailability ? dayAvailability.slots : []);
+  };
+
   const handleBooking = async (e) => {
     e.preventDefault();
     if (!user) {
@@ -45,7 +67,7 @@ const MentorProfileView = () => {
       setError('Only logged-in mentees can book mentoring slots.');
       return;
     }
-    if (!selectedDaySlot) {
+    if (!bookingDate || !selectedSlot) {
       setError('Please select an available date and time slot.');
       return;
     }
@@ -57,13 +79,15 @@ const MentorProfileView = () => {
     try {
       await axios.post('http://localhost:5000/api/bookings', {
         mentorId: id,
-        date: selectedDaySlot.day,
-        time: selectedDaySlot.slot,
+        date: bookingDate,
+        time: selectedSlot,
         notes,
       });
 
       setSuccess('Session booked successfully! Awaiting mentor approval.');
-      setSelectedDaySlot(null);
+      setBookingDate('');
+      setSelectedSlot('');
+      setAvailableSlots([]);
       setNotes('');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to book session. The slot might be taken.');
@@ -216,36 +240,51 @@ const MentorProfileView = () => {
           )}
 
           <form onSubmit={handleBooking} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div>
-              <span className="input-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Available Slots</span>
-              {(!profile.availability || profile.availability.length === 0) ? (
-                <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>No availability scheduled currently.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {profile.availability.map((avail, aIdx) => (
-                    <div key={aIdx}>
-                      <strong style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>{avail.day}</strong>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        {avail.slots.map((slot, sIdx) => {
-                          const isSelected = selectedDaySlot?.day === avail.day && selectedDaySlot?.slot === slot;
-                          return (
-                            <button
-                              key={sIdx}
-                              type="button"
-                              className={`btn ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
-                              onClick={() => setSelectedDaySlot({ day: avail.day, slot })}
-                              style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', borderRadius: '6px' }}
-                            >
-                              {slot}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {/* Date Selection */}
+            <div className="input-group">
+              <label className="input-label">Select Session Date</label>
+              <input 
+                type="date" 
+                value={bookingDate} 
+                min={new Date().toISOString().split('T')[0]} 
+                onChange={handleDateChange} 
+                required 
+              />
+              {profile.availability && profile.availability.length > 0 && (
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary-dark)', margin: '0.25rem 0 0 0' }}>
+                  Weekly availability: {profile.availability.map(a => a.day).join(', ')}
+                </p>
               )}
             </div>
+
+            {/* Time Slot Selection */}
+            {bookingDate && (
+              <div>
+                <span className="input-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Available Slots for this Day</span>
+                {availableSlots.length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: 'var(--danger)', fontStyle: 'italic' }}>
+                    No slots set for this day of the week. Please choose a different date.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {availableSlots.map((slot, sIdx) => {
+                      const isSelected = selectedSlot === slot;
+                      return (
+                        <button
+                          key={sIdx}
+                          type="button"
+                          className={`btn ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                          onClick={() => setSelectedSlot(slot)}
+                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', borderRadius: '6px' }}
+                        >
+                          {slot}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="input-group">
               <label className="input-label">Describe your Goals</label>
@@ -262,7 +301,7 @@ const MentorProfileView = () => {
               type="submit"
               className="btn btn-primary"
               style={{ width: '100%' }}
-              disabled={bookingLoading || !selectedDaySlot}
+              disabled={bookingLoading || !bookingDate || !selectedSlot}
             >
               <Calendar size={18} />
               Book Selected Slot
